@@ -1,0 +1,79 @@
+1. 
+
+SELECT c.customerNumber, COUNT(p.productCode) as total
+FROM customers c
+JOIN orders o ON c.customerNumber = o.customerNumber
+JOIN orderdetails od ON o.orderNumber = od.orderNumber
+JOIN products p ON od.productCode = p.productCode
+JOIN productlines pl ON p.productLine = pl.productLine
+WHERE pl.productLine = 'Classic Cars'
+GROUP BY c.customerNumber
+HAVING total > 23;
+
+2. 
+
+CREATE PROCEDURE ExtractPajak()
+BEGIN
+  DECLARE hasData INT;
+  
+  -- Periksa apakah tabel 'kurs_pajak' sudah berisi data
+  SELECT COUNT(*) INTO hasData FROM ksm_kurs_pajak;
+  
+  IF hasData > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Table ksm_kurs_pajak already have a data. Abort Transaction.';
+  ELSE
+    -- Mulai transaksi
+    START TRANSACTION;
+    
+    -- Ekstrak data dari ksm_kurs_pajak ke kurs_pajak
+    INSERT INTO kurs_pajak (kurs_rate, tgl, curr_id)
+    SELECT kurs_rate, tgl, curr_id FROM ksm_kurs_pajak;
+    
+    -- Commit transaksi
+    COMMIT;
+  END IF;
+  
+END //
+
+DELIMITER ;
+
+3. 
+
+DELIMITER //
+
+CREATE FUNCTION FindMinDateInConcatenatedString(concatenatedString TEXT)
+RETURNS DATE
+DETERMINISTIC
+BEGIN
+  DECLARE minDate DATE;
+  DECLARE dateList TEXT;
+  DECLARE dateSeparator CHAR(1);
+  DECLARE currentDate DATE;
+  DECLARE currentPart TEXT;
+  DECLARE done INT DEFAULT 0;
+
+  SET dateSeparator = ',';
+  SET dateList = CONCAT(concatenatedString, dateSeparator);
+  SET minDate = NULL;
+
+  WHILE NOT done DO
+    SET currentPart = SUBSTRING_INDEX(dateList, dateSeparator, 1);
+    SET dateList = SUBSTRING(dateList, LENGTH(currentPart) + 2);
+    
+    IF STR_TO_DATE(currentPart, '%Y-%m-%d') IS NOT NULL THEN
+      SET currentDate = STR_TO_DATE(currentPart, '%Y-%m-%d');
+      
+      IF minDate IS NULL OR currentDate < minDate THEN
+        SET minDate = currentDate;
+      END IF;
+    END IF;
+
+    IF LENGTH(dateList) = 0 THEN
+      SET done = 1;
+    END IF;
+  END WHILE;
+
+  RETURN minDate;
+END//
+
+DELIMITER ;
