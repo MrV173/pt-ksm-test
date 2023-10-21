@@ -12,30 +12,26 @@ HAVING total > 23;
 
 2. 
 
+DELIMITER //
 CREATE PROCEDURE ExtractPajak()
 BEGIN
-  DECLARE hasData INT;
+  DECLARE tableRowCount INT;
   
-  -- Periksa apakah tabel 'kurs_pajak' sudah berisi data
-  SELECT COUNT(*) INTO hasData FROM ksm_kurs_pajak;
-  
-  IF hasData > 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Table ksm_kurs_pajak already have a data. Abort Transaction.';
-  ELSE
-    -- Mulai transaksi
-    START TRANSACTION;
-    
-    -- Ekstrak data dari ksm_kurs_pajak ke kurs_pajak
-    INSERT INTO kurs_pajak (kurs_rate, tgl, curr_id)
-    SELECT kurs_rate, tgl, curr_id FROM ksm_kurs_pajak;
-    
-    -- Commit transaksi
-    COMMIT;
-  END IF;
-  
-END //
+  -- Cek jumlah baris dalam tabel kurs_pajak
+  SELECT COUNT(*) INTO tableRowCount FROM kurs_pajak;
 
+  IF tableRowCount > 0 THEN
+    -- Tabel kurs_pajak sudah memiliki data, lakukan rollback
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Tabel kurs_pajak sudah memiliki data. Rollback dilakukan.';
+  ELSE
+    -- Tabel kurs_pajak belum memiliki data, jalankan perintah untuk mengekstrak dan memasukkan data
+    INSERT INTO kurs_pajak (id_ksm_kurs_pajak, kurs_rate, tgl, curr_id)
+    SELECT id, kurs_rate, start_date, curr_id FROM ksm_kurs_pajak;
+  END IF;
+END //
 DELIMITER ;
+
 
 3. 
 
