@@ -13,24 +13,22 @@ HAVING total > 23;
 2. 
 
 DELIMITER //
-CREATE PROCEDURE ExtractPajak()
+CREATE PROCEDURE ExtractPajakKurs()
 BEGIN
   DECLARE tableRowCount INT;
   
-  -- Cek jumlah baris dalam tabel kurs_pajak
   SELECT COUNT(*) INTO tableRowCount FROM kurs_pajak;
 
   IF tableRowCount > 0 THEN
-    -- Tabel kurs_pajak sudah memiliki data, lakukan rollback
     SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'Tabel kurs_pajak sudah memiliki data. Rollback dilakukan.';
   ELSE
-    -- Tabel kurs_pajak belum memiliki data, jalankan perintah untuk mengekstrak dan memasukkan data
     INSERT INTO kurs_pajak (id_ksm_kurs_pajak, kurs_rate, tgl, curr_id)
     SELECT id, kurs_rate, start_date, curr_id FROM ksm_kurs_pajak;
   END IF;
 END //
 DELIMITER ;
+
 
 
 3. 
